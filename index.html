@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatur AI - Multi-Persona Workspace</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .chat-bubble {
+            max-width: 100%;
+        }
+        .chat-bubble-user {
+            background-color: #3b82f6; /* blue-500 */
+        }
+        .chat-bubble-ai {
+            background-color: #374151; /* gray-700 */
+        }
+        .chat-column::-webkit-scrollbar { width: 4px; }
+        .chat-column::-webkit-scrollbar-thumb { background-color: #4b5563; border-radius: 2px; }
+        .chat-column::-webkit-scrollbar-track { background-color: transparent; }
+        
+        /* Collapsible Sidebar */
+        #sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 320px;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease-in-out;
+            z-index: 50;
+        }
+        #sidebar.open {
+            transform: translateX(0);
+        }
+        #main-content {
+            transition: margin-left 0.3s ease-in-out;
+        }
+        @media (min-width: 768px) {
+            #main-content.sidebar-open {
+                margin-left: 320px;
+            }
+        }
+        .project-step-button {
+            background-color: #4f46e5;
+            transition: background-color 0.2s;
+        }
+        .project-step-button:hover {
+            background-color: #4338ca;
+        }
+        .visualize-button {
+            transition: all 0.2s ease;
+        }
+        .visualize-button:hover {
+            background-color: #4a044e; /* fuchsia-900 */
+            transform: scale(1.05);
+        }
+        .tts-button {
+            transition: color 0.2s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex h-screen antialiased overflow-hidden">
+
+    <!-- Left Panel (Sidebar) -->
+    <div id="sidebar" class="bg-gray-900/95 backdrop-blur-sm p-6 flex flex-col border-r border-gray-700/50 w-full md:w-auto">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center">
+                <h1 class="text-3xl font-bold text-white">Chatur AI</h1>
+                <span class="ml-2 text-3xl">✨</span>
+            </div>
+        </div>
+        
+        <div class="overflow-y-auto">
+            <p class="text-sm text-yellow-300 bg-yellow-900/50 border border-yellow-500/30 rounded-lg px-3 py-2 mb-6">
+                <strong>Festiv Sale! Free Pro Access:</strong> A Growth Partner (Worth ₹299) at your fingertips.
+            </p>
+            <div id="project-container" class="mb-6">
+                <h2 class="text-lg font-semibold mb-3 text-gray-300">✨ Your Projects</h2>
+                <div id="project-card" class="bg-gray-800/50 border border-gray-700 p-4 rounded-lg hidden cursor-pointer transition-all duration-300 hover:bg-gray-700/50">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="font-bold text-white" id="project-title"></p>
+                            <p class="text-sm text-gray-400" id="project-step"></p>
+                        </div>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400"><path d="m9 18 6-6-6-6"/></svg>
+                    </div>
+                </div>
+                <div id="no-project-message" class="text-center text-gray-500 text-sm py-4">
+                    Start a project by asking Chatur to "create a plan for..."
+                </div>
+            </div>
+            <div id="spark-container">
+                <h2 class="text-lg font-semibold mb-3 text-gray-300">Daily Spark</h2>
+                <div id="spark-card" class="bg-gray-800 p-4 rounded-lg cursor-pointer transition-transform hover:-translate-y-0.5">
+                    <p class="font-semibold text-white/90" id="spark-title"></p>
+                    <p class="text-sm text-gray-400 mt-1" id="spark-description"></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-auto text-center text-xs text-gray-600 pt-6">
+            <p class="mb-1">All responses are AI-generated. Verify important information.</p>
+            <p class="mb-2">Created by Pranavkumar Math @9480172376</p>
+            <p>&copy; 2025 Chatur AI.</p>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div id="main-content" class="flex-1 flex flex-col w-full">
+        <!-- Header -->
+        <div class="flex-shrink-0 bg-gray-800/80 backdrop-blur-sm border-b border-gray-700/50 p-2 flex items-center">
+             <button id="sidebar-toggle" class="p-2 rounded-md hover:bg-gray-700 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+            </button>
+            <h2 class="text-lg font-semibold ml-4">Multi-Persona Response</h2>
+        </div>
+        
+        <!-- User Prompt Display -->
+        <div id="user-prompt-display" class="p-4 hidden flex-shrink-0">
+            <div class="flex justify-end">
+                <div class="chat-bubble chat-bubble-user text-white p-3 rounded-lg max-w-xl">
+                    <p id="user-prompt-text" class="break-words"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Columns -->
+        <div class="flex-1 grid grid-cols-1 md:grid-cols-3 gap-px bg-gray-700/50 overflow-hidden">
+            <!-- AI Panda Column -->
+            <div class="bg-gray-800 flex flex-col p-4">
+                <h3 class="text-xl font-bold mb-4 text-center">Jester AI 🃏</h3>
+                <div id="panda-column" class="flex-1 overflow-y-auto space-y-4 chat-column"></div>
+            </div>
+            <!-- Mr. AI Column -->
+            <div class="bg-gray-800 flex flex-col p-4">
+                <h3 class="text-xl font-bold mb-4 text-center">Analyst AI 📈</h3>
+                <div id="mrai-column" class="flex-1 overflow-y-auto space-y-4 chat-column"></div>
+            </div>
+            <!-- Nova Column -->
+            <div class="bg-gray-800 flex flex-col p-4">
+                <h3 class="text-xl font-bold mb-4 text-center">Visionary AI 💡</h3>
+                <div id="nova-column" class="flex-1 overflow-y-auto space-y-4 chat-column"></div>
+            </div>
+        </div>
+
+        <!-- Input Bar -->
+        <div class="p-4 bg-gray-900/50 border-t border-gray-700/50">
+            <div class="flex items-center bg-gray-700 rounded-lg px-4 py-2">
+                <input type="text" id="message-input" class="flex-1 bg-transparent text-white placeholder-gray-400 focus:outline-none" placeholder="Ask the Jester, Analyst, or Visionary...">
+                <button id="send-button" class="ml-4 text-blue-400 hover:text-blue-300 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // DOM Elements
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('main-content');
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        
+        // Persona Columns
+        const pandaColumn = document.getElementById('panda-column');
+        const mraiColumn = document.getElementById('mrai-column');
+        const novaColumn = document.getElementById('nova-column');
+        const personaColumns = { panda: pandaColumn, mrai: mraiColumn, nova: novaColumn };
+
+        // Sidebar Hooks Elements
+        const projectCard = document.getElementById('project-card');
+        const noProjectMessage = document.getElementById('no-project-message');
+        const projectTitle = document.getElementById('project-title');
+        const projectStep = document.getElementById('project-step');
+        const sparkCard = document.getElementById('spark-card');
+        const sparkTitle = document.getElementById('spark-title');
+        const sparkDescription = document.getElementById('spark-description');
+
+        const API_KEY = ""; // Important: Leave this empty.
+        const GENERATE_CONTENT_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
+        const IMAGE_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${API_KEY}`;
+        const TTS_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${API_KEY}`;
+        
+        // State
+        let currentProject = null;
+        let isAwaitingProjectConfirmation = false;
+        let projectCreationPrompt = "";
+        let audioPlayer = new Audio(); // Single audio element for TTS playback
+        let currentlyPlayingButton = null;
+
+        // --- Sidebar Logic ---
+        sidebarToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+            mainContent.classList.toggle('sidebar-open');
+        });
+
+        // --- Core Application Logic ---
+        async function sendMessageToAI(userInput, persona = 'all') { /* ... same as before ... */ }
+        
+        function handleSend() { /* ... same as before ... */ }
+
+        sendButton.addEventListener('click', handleSend);
+        messageInput.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                handleSend();
+            }
+        });
+
+        // --- ✨ Image Generation Feature ---
+        async function generateImage(prompt, buttonElement) { /* ... same as before ... */ }
+
+        // --- ✨ Text-to-Speech Feature ---
+        async function speakText(text, personaKey, buttonElement) {
+            if (audioPlayer.playing && currentlyPlayingButton === buttonElement) {
+                audioPlayer.pause();
+                return;
+            }
+            if (currentlyPlayingButton) {
+                currentlyPlayingButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400 group-hover:text-white"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon></svg>`;
+            }
+
+            currentlyPlayingButton = buttonElement;
+            buttonElement.innerHTML = `<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>`;
+
+            const voices = {
+                panda: "Puck",   // Upbeat
+                mrai: "Charon",  // Informative
+                nova: "Zephyr"   // Bright
+            };
+
+            const payload = {
+                contents: [{ parts: [{ text }] }],
+                generationConfig: {
+                    responseModalities: ["AUDIO"],
+                    speechConfig: {
+                        voiceConfig: { prebuiltVoiceConfig: { voiceName: voices[personaKey] } }
+                    }
+                },
+                model: "gemini-2.5-flash-preview-tts"
+            };
+
+            try {
+                const response = await fetch(TTS_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+                const audioData = result.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+                const mimeType = result.candidates?.[0]?.content?.parts?.[0]?.inlineData?.mimeType;
+
+                if (audioData && mimeType && mimeType.startsWith("audio/")) {
+                    const sampleRate = parseInt(mimeType.match(/rate=(\d+)/)[1], 10);
+                    const pcmData = base64ToArrayBuffer(audioData);
+                    const pcm16 = new Int16Array(pcmData);
+                    const wavBlob = pcmToWav(pcm16, sampleRate);
+                    const audioUrl = URL.createObjectURL(wavBlob);
+                    
+                    audioPlayer.src = audioUrl;
+                    audioPlayer.play();
+                } else {
+                    throw new Error("Invalid audio data in response.");
+                }
+            } catch (error) {
+                console.error("TTS Error:", error);
+                // Reset button on error
+                buttonElement.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-red-500"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`;
+            }
+        }
+
+        audioPlayer.onplay = () => {
+            if (currentlyPlayingButton) {
+                currentlyPlayingButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-400"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>`;
+            }
+        };
+
+        audioPlayer.onpause = audioPlayer.onended = () => {
+            if (currentlyPlayingButton) {
+                currentlyPlayingButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400 group-hover:text-white"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon></svg>`;
+            }
+            currentlyPlayingButton = null;
+        };
+
+
+        // --- Project Feature Logic ---
+        async function initiateAIProject(userInput) { /* ... same as before ... */ }
+        function updateProjectCard() { /* ... same as before ... */ }
+        projectCard.onclick = () => { /* ... same as before ... */ };
+        function addProjectStepButton() { /* ... same as before ... */ }
+        function advanceProjectStep() { /* ... same as before ... */ }
+
+        // --- Utility Functions ---
+        function displayUserPrompt(text) { /* ... same as before ... */ }
+        function addMessageToColumn(text, sender, personaKey, options = {}) {
+            const column = personaColumns[personaKey];
+            if (!column) return;
+
+            const messageContainer = document.createElement('div');
+            messageContainer.classList.add('flex', 'flex-col', 'group', sender === 'user' ? 'items-end' : 'items-start');
+            
+            const messageContentWrapper = document.createElement('div');
+            messageContentWrapper.className = 'flex items-end gap-2';
+
+            const bubble = document.createElement('div');
+            bubble.classList.add('rounded-lg', 'p-3', 'chat-bubble', 'w-full');
+            bubble.classList.add(sender === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai');
+
+            if (options.isImage) {
+                const img = document.createElement('img');
+                img.src = text;
+                img.alt = "AI Generated Image";
+                img.className = 'rounded-lg max-w-full';
+                bubble.appendChild(img);
+            } else {
+                bubble.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            }
+            
+            messageContentWrapper.appendChild(bubble);
+
+            // ✨ Add TTS button for AI messages
+            if (sender === 'ai' && !options.isImage) {
+                const ttsButton = document.createElement('button');
+                ttsButton.className = 'tts-button p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity';
+                ttsButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400 group-hover:text-white"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon></svg>`;
+                ttsButton.onclick = () => speakText(text, personaKey, ttsButton);
+                messageContentWrapper.appendChild(ttsButton);
+            }
+
+            messageContainer.appendChild(messageContentWrapper);
+
+            // ✨ Add sources for Analyst AI
+            if (sender === 'ai' && options.sources && options.sources.length > 0) { /* ... */ }
+            // ✨ Add Visualize button for Visionary AI
+            if (sender === 'ai' && personaKey === 'nova' && !options.isImage) { /* ... */ }
+
+            column.appendChild(messageContainer);
+            column.scrollTop = column.scrollHeight;
+        }
+
+        // --- Redefining utility functions to avoid hiding ---
+        const originalAddMessage = addMessageToColumn;
+        addMessageToColumn = function(text, sender, personaKey, options = {}) {
+            const column = personaColumns[personaKey];
+            if (!column) return;
+            const messageContainer = document.createElement('div');
+            messageContainer.classList.add('flex', 'flex-col', 'group', sender === 'user' ? 'items-end' : 'items-start');
+            const messageContentWrapper = document.createElement('div');
+            messageContentWrapper.className = 'flex items-end gap-2';
+            const bubble = document.createElement('div');
+            bubble.classList.add('rounded-lg', 'p-3', 'chat-bubble', 'w-full');
+            bubble.classList.add(sender === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai');
+            if (options.isImage) {
+                const img = document.createElement('img');
+                img.src = text;
+                img.alt = "AI Generated Image";
+                img.className = 'rounded-lg max-w-full';
+                bubble.appendChild(img);
+            } else {
+                bubble.innerHTML = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            }
+            messageContentWrapper.appendChild(bubble);
+            if (sender === 'ai' && !options.isImage) {
+                const ttsButton = document.createElement('button');
+                ttsButton.className = 'tts-button p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity';
+                ttsButton.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-gray-400 group-hover:text-white"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon></svg>`;
+                ttsButton.onclick = () => speakText(text, personaKey, ttsButton);
+                messageContentWrapper.appendChild(ttsButton);
+            }
+            messageContainer.appendChild(messageContentWrapper);
+            if (sender === 'ai' && options.sources && options.sources.length > 0) {
+                const sourcesContainer = document.createElement('div');
+                sourcesContainer.className = 'mt-2 text-xs text-gray-400';
+                sourcesContainer.innerHTML = '<strong>Sources:</strong>';
+                const sourcesList = document.createElement('ol');
+                sourcesList.className = 'list-decimal list-inside pl-2';
+                options.sources.forEach(source => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<a href="${source.uri}" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:underline">${source.title}</a>`;
+                    sourcesList.appendChild(li);
+                });
+                sourcesContainer.appendChild(sourcesList);
+                messageContainer.appendChild(sourcesContainer);
+            }
+            if (sender === 'ai' && personaKey === 'nova' && !options.isImage) {
+                const button = document.createElement('button');
+                button.innerHTML = '✨ Visualize';
+                button.className = 'visualize-button text-xs bg-purple-800 text-white font-semibold py-1 px-3 rounded-full mt-2 self-start';
+                button.onclick = () => generateImage(text, button);
+                messageContainer.appendChild(button);
+            }
+            column.appendChild(messageContainer);
+            column.scrollTop = column.scrollHeight;
+        };
+
+        // --- All other functions remain the same ---
+        // Helper functions for TTS audio conversion
+        function base64ToArrayBuffer(base64) {
+            const binaryString = window.atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        function pcmToWav(pcmData, sampleRate) {
+            const numChannels = 1;
+            const bytesPerSample = 2; // 16-bit
+            const blockAlign = numChannels * bytesPerSample;
+            const byteRate = sampleRate * blockAlign;
+            const dataSize = pcmData.length * bytesPerSample;
+            const buffer = new ArrayBuffer(44 + dataSize);
+            const view = new DataView(buffer);
+
+            /* RIFF identifier */
+            writeString(view, 0, 'RIFF');
+            /* file length */
+            view.setUint32(4, 36 + dataSize, true);
+            /* RIFF type */
+            writeString(view, 8, 'WAVE');
+            /* format chunk identifier */
+            writeString(view, 12, 'fmt ');
+            /* format chunk length */
+            view.setUint32(16, 16, true);
+            /* sample format (raw) */
+            view.setUint16(20, 1, true);
+            /* channel count */
+            view.setUint16(22, numChannels, true);
+            /* sample rate */
+            view.setUint32(24, sampleRate, true);
+            /* byte rate (sample rate * block align) */
+            view.setUint32(28, byteRate, true);
+            /* block align (channel count * bytes per sample) */
+            view.setUint16(32, blockAlign, true);
+            /* bits per sample */
+            view.setUint16(34, 16, true);
+            /* data chunk identifier */
+            writeString(view, 36, 'data');
+            /* data chunk length */
+            view.setUint32(40, dataSize, true);
+
+            // Write PCM data
+            for (let i = 0; i < pcmData.length; i++) {
+                view.setInt16(44 + i * 2, pcmData[i], true);
+            }
+
+            return new Blob([view], { type: 'audio/wav' });
+        }
+
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+
+        // --- Redefining all other functions to ensure they are available ---
+        sendMessageToAI = async function (userInput, persona = 'all') {
+            const personas = {
+                panda: "You are Jester AI. Your persona is witty, humorous, and funny. You find the amusing angle in every topic and respond with clever jokes, puns, or funny observations. Keep it light and entertaining.",
+                mrai: "You are Analyst AI. Your persona is a precise, factual AI connected to Google Search. Provide accurate, up-to-date information and cite your sources. Your goal is maximum clarity and reliability.",
+                nova: "You are Visionary AI, a world-class creative strategist and professional consultant. Your responses are insightful, innovative, and highly detailed, providing expert-level ideas and sophisticated solutions. Think outside the box."
+            };
+            const targetPersonas = persona === 'all' ? Object.keys(personas) : [persona];
+            targetPersonas.forEach(key => addLoadingIndicator(key));
+            const apiCalls = targetPersonas.map(key => {
+                const payload = { contents: [{ parts: [{ text: userInput }] }], systemInstruction: { parts: [{ text: personas[key] }] }, };
+                if (key === 'mrai') { payload.tools = [{ "google_search": {} }]; }
+                return fetch(GENERATE_CONTENT_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }).then(res => { if (!res.ok) { throw new Error(`API call failed with status: ${res.status}`); } return res.json(); });
+            });
+            try {
+                const results = await Promise.all(apiCalls);
+                targetPersonas.forEach((key, index) => {
+                    removeLoadingIndicator(key);
+                    const candidate = results[index]?.candidates?.[0];
+                    const text = candidate?.content?.parts?.[0]?.text || "I'm not sure how to respond to that.";
+                    let sources = [];
+                    if (key === 'mrai' && candidate?.groundingMetadata?.groundingAttributions) { sources = candidate.groundingMetadata.groundingAttributions.map(attr => ({ uri: attr.web?.uri, title: attr.web?.title })).filter(s => s.uri && s.title); }
+                    addMessageToColumn(text, 'ai', key, { sources });
+                });
+                return results[0]?.candidates?.[0]?.content?.parts?.[0]?.text;
+            } catch (error) {
+                console.error("Error calling Gemini API:", error);
+                targetPersonas.forEach(key => { removeLoadingIndicator(key); addMessageToColumn(`Sorry, an error occurred: ${error.message}`, 'ai', key); });
+            }
+        };
+        handleSend = function () {
+            const userInput = messageInput.value.trim();
+            if (!userInput) return;
+            displayUserPrompt(userInput);
+            const projectKeywords = ['plan', 'create a plan for', 'start a project on', 'help me plan'];
+            const isProjectQuery = projectKeywords.some(kw => userInput.toLowerCase().startsWith(kw));
+            if (isAwaitingProjectConfirmation) {
+                if (userInput.toLowerCase().includes('yes')) { initiateAIProject(projectCreationPrompt); } else { isAwaitingProjectConfirmation = false; addMessageToColumn("Okay, let's stick to a regular chat for now.", 'ai', 'mrai'); }
+            } else if (isProjectQuery) {
+                isAwaitingProjectConfirmation = true;
+                projectCreationPrompt = userInput;
+                addMessageToColumn(`This sounds like a goal! Would you like me to create a formal ✨ Project Plan for this? (Yes/No)`, 'ai', 'mrai');
+            } else { sendMessageToAI(userInput); }
+            messageInput.value = '';
+        };
+        generateImage = async function (prompt, buttonElement) {
+            buttonElement.disabled = true;
+            buttonElement.innerHTML = `<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>`;
+            const imagePrompt = `An inspiring, professional, vibrant image representing the concept of: "${prompt}"`;
+            const payload = { instances: [{ prompt: imagePrompt }], parameters: { "sampleCount": 1 } };
+            try {
+                const response = await fetch(IMAGE_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const result = await response.json();
+                if (result.predictions && result.predictions[0].bytesBase64Encoded) {
+                    const imageUrl = `data:image/png;base64,${result.predictions[0].bytesBase64Encoded}`;
+                    addMessageToColumn(imageUrl, 'ai', 'nova', { isImage: true });
+                    buttonElement.remove();
+                } else { throw new Error('No image data in response.'); }
+            } catch (error) {
+                console.error("Error generating image:", error);
+                addMessageToColumn("Sorry, I couldn't create an image for that.", 'ai', 'nova');
+                buttonElement.innerHTML = '✨ Visualize';
+                buttonElement.disabled = false;
+            }
+        };
+        initiateAIProject = async function (userInput) { isAwaitingProjectConfirmation = false; addMessageToColumn("Excellent! Generating a custom project plan with Gemini... ✨", 'ai', 'nova'); const planningPrompt = `A user wants to start a project: "${userInput}". Break this down into 5-7 actionable, high-level steps. Return ONLY a valid JSON array of strings. Example: ["Define Goals and Objectives", "Conduct Market Research", "Develop a Business Plan", "Secure Funding", "Build the Team"]`; const plannerPersona = "You are a world-class project manager. Your task is to take a user's goal and break it down into a clear, actionable list of steps. You must only respond with a single, valid JSON array of strings, with no other text or explanation."; const payload = { contents: [{ parts: [{ text: planningPrompt }] }], systemInstruction: { parts: [{ text: plannerPersona }] }, }; try { const response = await fetch(GENERATE_CONTENT_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); const result = await response.json(); const rawSteps = result.candidates?.[0]?.content?.parts?.[0]?.text; const steps = JSON.parse(rawSteps); const projectName = userInput.replace(/^(plan|create a plan for|start a project on|help me plan)\s+/i, '').trim(); currentProject = { name: projectName, steps: steps, currentStep: 0 }; localStorage.setItem('chaturProject', JSON.stringify(currentProject)); updateProjectCard(); addMessageToColumn(`I've created your project plan for **${projectName}**. You can track your progress in the sidebar. Let's get started!`, 'ai', 'nova'); } catch (error) { console.error("Failed to create AI project plan:", error); addMessageToColumn("I had trouble creating the plan. Maybe we can try rephrasing the goal?", 'ai', 'nova'); } };
+        updateProjectCard = function () { if (currentProject) { projectTitle.textContent = currentProject.name; projectStep.textContent = `Step ${currentProject.currentStep + 1}: ${currentProject.steps[currentProject.currentStep]}`; projectCard.classList.remove('hidden'); noProjectMessage.classList.add('hidden'); } else { projectCard.classList.add('hidden'); noProjectMessage.classList.remove('hidden'); } };
+        projectCard.onclick = () => { if (currentProject) { const stepToDetail = currentProject.steps[currentProject.currentStep]; const detailPrompt = `For my project "${currentProject.name}", please provide a detailed, professional breakdown of the following step: "${stepToDetail}". Include key considerations, actionable advice, and a potential checklist.`; displayUserPrompt(`Let's dive into: **${stepToDetail}**`); sendMessageToAI(detailPrompt, 'nova').then(() => { addProjectStepButton(); }); } };
+        addProjectStepButton = function () { const button = document.createElement('button'); button.textContent = 'Mark Complete & Next Step →'; button.className = 'project-step-button w-full text-white font-semibold py-2 px-4 rounded-lg mt-4'; button.onclick = advanceProjectStep; novaColumn.appendChild(button); novaColumn.scrollTop = novaColumn.scrollHeight; };
+        advanceProjectStep = function () { if (!currentProject) return; currentProject.currentStep++; if (currentProject.currentStep >= currentProject.steps.length) { addMessageToColumn(`🎉 Amazing work! You've completed the project: **${currentProject.name}**!`, 'ai', 'nova'); localStorage.removeItem('chaturProject'); currentProject = null; } else { addMessageToColumn(`Great progress! The next step is ready in the sidebar.`, 'ai', 'nova'); localStorage.setItem('chaturProject', JSON.stringify(currentProject)); } updateProjectCard(); };
+        displayUserPrompt = function (text) { const display = document.getElementById('user-prompt-display'); const textElement = document.getElementById('user-prompt-text'); Object.values(personaColumns).forEach(col => col.innerHTML = ''); textElement.textContent = text; display.classList.remove('hidden'); };
+        addLoadingIndicator = function(personaKey) { const column = personaColumns[personaKey]; if (!column) return; const indicator = document.createElement('div'); indicator.id = `loading-${personaKey}`; indicator.classList.add('flex', 'justify-start'); indicator.innerHTML = `<div class="rounded-lg p-3 chat-bubble chat-bubble-ai"><div class="flex items-center"><div class="w-2 h-2 bg-blue-300 rounded-full animate-pulse mr-2"></div><div class="w-2 h-2 bg-blue-300 rounded-full animate-pulse mr-2" style="animation-delay: 0.2s;"></div></div></div>`; column.appendChild(indicator); column.scrollTop = column.scrollHeight; }
+        removeLoadingIndicator = function(personaKey) { const indicator = document.getElementById(`loading-${personaKey}`); if (indicator) indicator.remove(); }
+        const dailySparks = [ { title: "The Ocean's Loudest Secret", description: "A mysterious, ultra-low-frequency sound...", prompt: "Tell me about the 'Bloop' sound." }, { title: "Honey That Never Spoils", description: "Found in ancient tombs, still edible. Why?", prompt: "Why does honey not spoil?" }, { title: "The Brain's 'Delete' Button", description: "Your brain cleans house while you sleep.", prompt: "Explain synaptic pruning during sleep." } ];
+        function loadDailySpark() { const spark = dailySparks[Math.floor(Math.random() * dailySparks.length)]; sparkTitle.textContent = spark.title; sparkDescription.textContent = spark.description; sparkCard.onclick = () => { displayUserPrompt(spark.prompt); sendMessageToAI(spark.prompt); if (window.innerWidth < 768) sidebar.classList.remove('open'); }; }
+        function loadProject() { const savedProject = localStorage.getItem('chaturProject'); if (savedProject) { currentProject = JSON.parse(savedProject); updateProjectCard(); } }
+        
+        // Initial setup
+        window.onload = () => {
+            loadDailySpark();
+            loadProject();
+            addMessageToColumn("Hello! I'm Analyst AI. I am connected to Google Search for real-time answers. How can I help?", 'ai', 'mrai');
+            if (window.innerWidth >= 768) {
+                sidebar.classList.add('open');
+                mainContent.classList.add('sidebar-open');
+            }
+        };
+    </script>
+</body>
+</html>
+
